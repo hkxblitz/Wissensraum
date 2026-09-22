@@ -192,12 +192,15 @@ body.theme-light .color-swatch[data-color="#default"] {
     width: 28px;
     text-align: center;
     outline: none;
+    -webkit-appearance: none;
     -moz-appearance: textfield;
+    appearance: none;
 }
 
 #page-num-input::-webkit-outer-spin-button,
 #page-num-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 

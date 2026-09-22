@@ -18,6 +18,7 @@ const pageTotalLabel = document.getElementById('page-total-label');
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
 const btnAdd = document.getElementById('btn-add-page');
+const btnDup = document.getElementById('btn-dup-page');
 const btnClearPage = document.getElementById('btn-clear-page');
 const btnDelPage = document.getElementById('btn-del-page');
 const btnTheme = document.getElementById('btn-theme-toggle');
@@ -48,7 +49,6 @@ let curColor = '#default';
 let currentTheme = 'dark';
 let selectedStrokesIndices = new Set();
 
-// Separate memory registers for each tool type
 const toolSizes = {
     pen: 3,
     highlighter: 24,
@@ -74,7 +74,6 @@ function resizeStage() {
 }
 window.addEventListener('resize', resizeStage);
 
-// Determine active tool's current size
 function getCurrentToolSize() {
     if (activeTool === 'pen') return toolSizes.pen;
     if (activeTool === 'highlighter') return toolSizes.highlighter;
@@ -82,7 +81,6 @@ function getCurrentToolSize() {
     return toolSizes.shapes;
 }
 
-// Update size register and sync UI controls
 function setCurrentToolSize(val) {
     const clamped = Math.max(1, Math.min(60, val));
     if (activeTool === 'pen') toolSizes.pen = clamped;
@@ -189,7 +187,7 @@ function drawSingleStroke(ctx, s, isSelected = false) {
         ctx.strokeStyle = isSelected ? '#3b82f6' : effectiveColor;
         ctx.fillStyle = ctx.strokeStyle;
         ctx.lineWidth = s.width;
-        drawArrow(ctx, s.x1, s.y1, s.x2, s.y2, s.width * 3);
+        drawArrow(ctx, s.x1, s.y1, s.x2, s.y2, s.width);
     } else if (s.type === 'axes') {
         ctx.strokeStyle = isSelected ? '#3b82f6' : effectiveColor;
         ctx.lineWidth = s.width;
@@ -204,17 +202,24 @@ function drawSingleStroke(ctx, s, isSelected = false) {
     ctx.restore();
 }
 
-function drawArrow(ctx, fromx, fromy, tox, toy, headlen) {
+// Redesigned arrowhead geometry: minimum 18px length, bold triangle tip
+function drawArrow(ctx, fromx, fromy, tox, toy, strokeWidth) {
     const angle = Math.atan2(toy - fromy, tox - fromx);
+    const headlen = Math.max(18, strokeWidth * 4.5);
+    const arrowSpread = Math.PI / 6.5;
+
+    // Draw primary shaft
     ctx.beginPath();
     ctx.moveTo(fromx, fromy);
     ctx.lineTo(tox, toy);
     ctx.stroke();
 
+    // Draw filled arrowhead tip
     ctx.beginPath();
     ctx.moveTo(tox, toy);
-    ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(tox - headlen * Math.cos(angle - arrowSpread), toy - headlen * Math.sin(angle - arrowSpread));
+    ctx.lineTo(tox - (headlen * 0.75) * Math.cos(angle), toy - (headlen * 0.75) * Math.sin(angle));
+    ctx.lineTo(tox - headlen * Math.cos(angle + arrowSpread), toy - headlen * Math.sin(angle + arrowSpread));
     ctx.closePath();
     ctx.fill();
 }
@@ -334,7 +339,7 @@ liveCanvas.addEventListener('pointermove', (e) => {
             liveCtx.lineTo(e.clientX, e.clientY);
             liveCtx.stroke();
         } else if (activeTool === 'arrow') {
-            drawArrow(liveCtx, startPt.x, startPt.y, e.clientX, e.clientY, toolSizes.shapes * 3);
+            drawArrow(liveCtx, startPt.x, startPt.y, e.clientX, e.clientY, toolSizes.shapes);
         } else if (activeTool === 'axes') {
             drawAxes(liveCtx, startPt.x, startPt.y, e.clientX, e.clientY);
         } else if (activeTool === 'rect') {
@@ -479,7 +484,7 @@ function spawnTextBox(x, y) {
     box.addEventListener('keydown', (e) => { if (e.key === 'Escape') commit(); });
 }
 
-// --- DIRECT JUMP PAGE INPUT (CLICK & ENTER) ---
+// --- DIRECT JUMP PAGE INPUT ---
 pageNumInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         let val = parseInt(pageNumInput.value, 10);
@@ -493,7 +498,7 @@ pageNumInput.addEventListener('keydown', (e) => {
     }
 });
 
-// --- THUMBNAIL DRAWER / SLIDE OVERVIEW ---
+// --- THUMBNAIL DRAWER ---
 function renderThumbnails() {
     thumbnailsGrid.innerHTML = '';
     const tempCanvas = document.createElement('canvas');
@@ -520,7 +525,7 @@ function renderThumbnails() {
         wrap.className = 'thumb-preview-wrap';
         const img = document.createElement('img');
         img.className = 'thumb-preview-img';
-        img.src = tempCanvas.toDataURL('image/jpeg', 0.5); // Lightweight preview
+        img.src = tempCanvas.toDataURL('image/jpeg', 0.5);
 
         wrap.appendChild(img);
         card.appendChild(wrap);
@@ -548,16 +553,27 @@ btnToggleDrawer.addEventListener('click', () => {
 });
 btnCloseDrawer.addEventListener('click', () => slideDrawer.classList.add('hidden'));
 
-// --- PAGE NAVIGATION & CONTROLS ---
-btnAdd.addEventListener('click', () => {
+// --- PAGE ACTIONS ---
+function addNewPage() {
     notebook.splice(activeIndex + 1, 0, { strokes: [], pdfBg: null });
     activeIndex++;
     selectedStrokesIndices.clear();
     btnDeleteSelected.classList.add('hidden');
     fullRepaint();
-});
+}
 
-// Silent instant clear (Zero alert prompts)
+function duplicateCurrentPage() {
+    const clone = JSON.parse(JSON.stringify(notebook[activeIndex]));
+    notebook.splice(activeIndex + 1, 0, clone);
+    activeIndex++;
+    selectedStrokesIndices.clear();
+    btnDeleteSelected.classList.add('hidden');
+    fullRepaint();
+}
+
+btnAdd.addEventListener('click', addNewPage);
+btnDup.addEventListener('click', duplicateCurrentPage);
+
 btnClearPage.addEventListener('click', () => {
     notebook[activeIndex].strokes = [];
     selectedStrokesIndices.clear();
@@ -604,14 +620,13 @@ btnUndo.addEventListener('click', () => {
     }
 });
 
-// --- THEME SWITCHER ---
 btnTheme.addEventListener('click', () => {
     currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.body.className = `theme-${currentTheme}`;
     fullRepaint();
 });
 
-// --- TOOL SWITCHING & INDEPENDENT SIZE REGISTRATION ---
+// --- TOOL SWITCHING & INDEPENDENT SIZES ---
 const toolList = ['pen', 'highlighter', 'eraser', 'select', 'text', 'line', 'arrow', 'axes', 'rect', 'circle'];
 toolList.forEach(tool => {
     const b = document.getElementById(`tool-${tool}`);
@@ -668,7 +683,7 @@ window.addEventListener('pointermove', (e) => {
 window.addEventListener('pointerup', () => isDraggingDock = false);
 btnHide.addEventListener('click', () => dock.classList.toggle('recording-hidden'));
 
-// --- KEYBOARD SHORTCUTS ---
+// --- KEYBOARD SHORTCUTS ENGINE ---
 btnShortcuts.addEventListener('click', () => shortcutsModal.classList.toggle('hidden'));
 btnCloseModal.addEventListener('click', () => shortcutsModal.classList.add('hidden'));
 
@@ -676,7 +691,22 @@ window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
     const k = e.key.toLowerCase();
-    if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); btnUndo.click(); }
+    
+    // Page Duplication (Ctrl+D / Meta+D)
+    if ((e.ctrlKey || e.metaKey) && k === 'd') {
+        e.preventDefault();
+        duplicateCurrentPage();
+        return;
+    }
+
+    // Undo (Ctrl+Z)
+    if ((e.ctrlKey || e.metaKey) && k === 'z') {
+        e.preventDefault();
+        btnUndo.click();
+        return;
+    }
+
+    if (k === 'n') { addNewPage(); }
     else if (k === 'h') { dock.classList.toggle('recording-hidden'); }
     else if (k === 'd') { btnTheme.click(); }
     else if (k === '?') { shortcutsModal.classList.toggle('hidden'); }
@@ -773,4 +803,4 @@ btnExport.addEventListener('click', async () => {
 
 // Boot Initial Setup
 syncBrushControls();
-resizeStage();1
+resizeStage();
