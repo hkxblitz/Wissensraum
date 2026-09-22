@@ -112,15 +112,17 @@ function fullRepaint() {
 
     const page = notebook[activeIndex];
 
-    if (page.pdfBg) {
+    if (page && page.pdfBg) {
         const img = new Image();
         img.src = page.pdfBg;
         img.onload = () => pdfCtx.drawImage(img, 0, 0, pdfCanvas.width, pdfCanvas.height);
     }
 
-    for (let i = 0; i < page.strokes.length; i++) {
-        const isSelected = selectedStrokesIndices.has(i);
-        drawSingleStroke(inkCtx, page.strokes[i], isSelected);
+    if (page && page.strokes) {
+        for (let i = 0; i < page.strokes.length; i++) {
+            const isSelected = selectedStrokesIndices.has(i);
+            drawSingleStroke(inkCtx, page.strokes[i], isSelected);
+        }
     }
 
     pageNumInput.value = activeIndex + 1;
@@ -401,6 +403,9 @@ const finishStroke = (e) => {
     if (finalStroke) {
         notebook[activeIndex].strokes.push(finalStroke);
         drawSingleStroke(inkCtx, finalStroke);
+        if (typeof savePageData === 'function') {
+            savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+        }
     }
 
     liveCtx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
@@ -434,6 +439,9 @@ btnDeleteSelected.addEventListener('click', () => {
     selectedStrokesIndices.clear();
     btnDeleteSelected.classList.add('hidden');
     fullRepaint();
+    if (typeof savePageData === 'function') {
+        savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+    }
 });
 
 // --- POINT ERASER ---
@@ -454,7 +462,12 @@ function eraseAtPoint(x, y, radius) {
         return true;
     });
 
-    if (page.strokes.length !== initialLen) fullRepaint();
+    if (page.strokes.length !== initialLen) {
+        fullRepaint();
+        if (typeof savePageData === 'function') {
+            savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+        }
+    }
 }
 
 // --- TEXT BOX ---
@@ -476,6 +489,9 @@ function spawnTextBox(x, y) {
             const stroke = { type: 'text', color: curColor, x, y, lines: val.split('\n') };
             notebook[activeIndex].strokes.push(stroke);
             drawSingleStroke(inkCtx, stroke);
+            if (typeof savePageData === 'function') {
+                savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+            }
         }
         box.remove();
     };
@@ -579,6 +595,9 @@ btnClearPage.addEventListener('click', () => {
     selectedStrokesIndices.clear();
     btnDeleteSelected.classList.add('hidden');
     fullRepaint();
+    if (typeof savePageData === 'function') {
+        savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+    }
 });
 
 btnDelPage.addEventListener('click', () => {
@@ -617,6 +636,9 @@ btnUndo.addEventListener('click', () => {
         selectedStrokesIndices.clear();
         btnDeleteSelected.classList.add('hidden');
         fullRepaint();
+        if (typeof savePageData === 'function') {
+            savePageData(`slide-${activeIndex}`, notebook[activeIndex]);
+        }
     }
 });
 
@@ -801,6 +823,15 @@ btnExport.addEventListener('click', async () => {
     finally { btnExport.textContent = '💾'; }
 });
 
-// Boot Initial Setup
+// --- PWA SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW Registered:', reg.scope))
+            .catch(err => console.error('SW Registration Failed:', err));
+    });
+}
+
+// --- BOOT INITIAL SETUP ---
 syncBrushControls();
 resizeStage();

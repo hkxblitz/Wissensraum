@@ -1,23 +1,24 @@
 {
-  "name": "Lightweight Notes PWA",
-  "short_name": "Notes",
-  "start_url": "./index.html",
+  "name": "Lecture & STEM Studio",
+  "short_name": "STEM Studio",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
-  "background_color": "#202020",
-  "theme_color": "#141414",
-  "description": "Ultra-lightweight low-latency stylus notes app optimized for ChromeOS.",
+  "background_color": "#121214",
+  "theme_color": "#1e1e24",
+  "description": "Ultra-lightweight zero-scroll whiteboard for ChromeOS.",
   "icons": [
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
