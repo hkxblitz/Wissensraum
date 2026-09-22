@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lecture & STEM Studio</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <!-- Floating Minimal Studio Dock -->
+    <header id="studio-dock">
+        <div id="drag-handle" title="Drag toolbar">⋮⋮</div>
+
+        <!-- Primary Drawing & Edit Tools -->
+        <div class="dock-cluster">
+            <button id="tool-pen" class="dock-btn active" title="Pen (P)">🖊️</button>
+            <button id="tool-highlighter" class="dock-btn" title="Highlighter (M)">🖍️</button>
+            <button id="tool-eraser" class="dock-btn" title="Point Eraser (E)">🧹</button>
+            <button id="tool-select" class="dock-btn" title="Box Select (S)">⬚ Select</button>
+            <button id="tool-text" class="dock-btn" title="Text (T)">🔤</button>
+        </div>
+
+        <div class="dock-rule"></div>
+
+        <!-- Shapes & Graph Utilities -->
+        <div class="dock-cluster">
+            <button id="tool-line" class="dock-btn" title="Line">📏</button>
+            <button id="tool-arrow" class="dock-btn" title="Vector Arrow">↗️</button>
+            <button id="tool-axes" class="dock-btn" title="Coordinate Axes / Graph">┼</button>
+            <button id="tool-rect" class="dock-btn" title="Rectangle">◻️</button>
+            <button id="tool-circle" class="dock-btn" title="Circle">⭕</button>
+        </div>
+
+        <div class="dock-rule"></div>
+
+        <!-- Preset Palette Swatches -->
+        <div class="dock-cluster" id="palette-swatches">
+            <button class="color-swatch active" data-color="#default" title="Auto Contrast"></button>
+            <button class="color-swatch" data-color="#3b82f6" style="background:#3b82f6;" title="Blue"></button>
+            <button class="color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Red"></button>
+            <button class="color-swatch" data-color="#22c55e" style="background:#22c55e;" title="Green"></button>
+            <button class="color-swatch" data-color="#eab308" style="background:#eab308;" title="Yellow"></button>
+            <input type="color" id="custom-color-input" value="#3b82f6" title="Custom color">
+        </div>
+
+        <div class="dock-rule"></div>
+
+        <!-- Tool-Specific Width Controller -->
+        <div class="dock-cluster">
+            <span id="brush-size-label">3px</span>
+            <input type="range" id="brush-slider" min="1" max="60" value="3" title="Adjust Tool Size ([ and ])">
+        </div>
+
+        <div class="dock-rule"></div>
+
+        <!-- Direct-Input Page Navigation & Drawer -->
+        <div class="dock-cluster">
+            <button id="btn-prev" class="dock-btn" title="Prev Slide (Left Arrow)">◀</button>
+            <div id="page-input-wrapper">
+                <input type="number" id="page-num-input" min="1" value="1" title="Type page number and press Enter">
+                <span id="page-total-label">/ 1</span>
+            </div>
+            <button id="btn-next" class="dock-btn" title="Next Slide (Right Arrow)">▶</button>
+            <button id="btn-toggle-drawer" class="dock-btn" title="Slide Overview Drawer">📑 Slides</button>
+            <button id="btn-add-page" class="dock-btn primary" title="New Blank Slide">+ Slide</button>
+            <button id="btn-clear-page" class="dock-btn" title="Instant Clear Canvas">🧽 Clear</button>
+            <button id="btn-del-page" class="dock-btn danger" title="Delete Slide">🗑️</button>
+        </div>
+
+        <div class="dock-rule"></div>
+
+        <!-- Mode & Secondary Utilities -->
+        <div class="dock-cluster">
+            <button id="btn-theme-toggle" class="dock-btn" title="Toggle Board Theme (D)">☀️ / 🌙</button>
+            <button id="btn-delete-selected" class="dock-btn danger hidden" title="Delete Selected Objects">Delete Selected</button>
+            <button id="btn-undo" class="dock-btn" title="Undo (Ctrl+Z)">↶</button>
+            <button id="btn-import-pdf" class="dock-btn" title="Import PDF">📂</button>
+            <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;">
+            <button id="btn-export-pdf" class="dock-btn" title="Export PDF">💾</button>
+            <button id="btn-shortcuts-toggle" class="dock-btn" title="Keyboard Shortcuts (?)">⌨️</button>
+            <button id="btn-hide-ui" class="dock-btn" title="Presentation Mode (H)">👁️</button>
+        </div>
+    </header>
+
+    <!-- Slide Overview Thumbnail Drawer -->
+    <aside id="slide-drawer" class="drawer-panel hidden">
+        <div class="drawer-header">
+            <h3>All Slides Overview</h3>
+            <button id="btn-close-drawer">✕</button>
+        </div>
+        <div id="thumbnails-grid" class="thumbnails-container">
+            <!-- Dynamic Thumbnail Cards Render Here -->
+        </div>
+    </aside>
+
+    <!-- Shortcuts Cheatsheet Modal -->
+    <div id="shortcuts-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Studio Keyboard Shortcuts</h3>
+                <button id="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-grid">
+                <div><kbd>P</kbd> Pen Tool</div>
+                <div><kbd>M</kbd> Highlighter</div>
+                <div><kbd>E</kbd> Point Eraser</div>
+                <div><kbd>S</kbd> Box Select Tool</div>
+                <div><kbd>T</kbd> Quick Text Box</div>
+                <div><kbd>[</kbd> / <kbd>]</kbd> Size Down / Up</div>
+                <div><kbd>D</kbd> Toggle Dark/Light Board</div>
+                <div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Instant Undo</div>
+                <div><kbd>←</kbd> / <kbd>→</kbd> Prev / Next Slide</div>
+                <div><kbd>Delete</kbd> Delete Selection</div>
+                <div><kbd>H</kbd> Hide Dock (Presentation Mode)</div>
+                <div><kbd>?</kbd> Toggle Shortcuts List</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edge-to-Edge Single Viewport Stage -->
+    <main id="board-container">
+        <canvas id="pdf-layer"></canvas>
+        <canvas id="ink-layer"></canvas>
+        <canvas id="live-layer"></canvas>
+    </main>
+
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
